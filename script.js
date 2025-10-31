@@ -135,6 +135,7 @@ function openUserMenu() {
     </div>
     <div class="small muted" style="margin-bottom:12px">Tipp: Speichere diesen Code, um auf anderen Geräten zugreifen zu können.</div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+      <button id="deleteAllBtn" style="color:var(--danger);margin-right:auto">Alle löschen</button>
       <button id="changeCodeBtn">Code ändern</button>
       <button id="closeUserMenuBtn">Schließen</button>
     </div>
@@ -145,6 +146,10 @@ function openUserMenu() {
   document.getElementById('changeCodeBtn').addEventListener('click', ()=> {
     hideDialog();
     setTimeout(changeUserCode, 100);
+  });
+  document.getElementById('deleteAllBtn').addEventListener('click', ()=> {
+    hideDialog();
+    setTimeout(confirmDeleteAll, 100);
   });
 }
 
@@ -181,6 +186,56 @@ function changeUserCode() {
     // Neu laden um mit neuem Code zu synchronisieren
     location.reload();
   });
+}
+
+function confirmDeleteAll() {
+  const totalShortcuts = state.shortcuts.length;
+  const totalFolders = state.folders.length;
+
+  const html = `
+    <div style="font-weight:700;margin-bottom:8px;color:var(--danger)">⚠️ Alle Elemente löschen</div>
+    <div class="small muted" style="margin-bottom:12px">
+      Diese Aktion löscht <strong>ALLE</strong> Kurzbefehle und Ordner, unabhängig vom Besitzer:
+    </div>
+    <div style="background:rgba(255,255,255,0.05);padding:12px;border-radius:8px;margin-bottom:12px;">
+      <div>📌 ${totalShortcuts} Kurzbefehle</div>
+      <div>📁 ${totalFolders} Ordner</div>
+    </div>
+    <div class="small muted" style="margin-bottom:12px;color:var(--danger)">
+      ⚠️ Diese Aktion kann nicht rückgängig gemacht werden!
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+      <button id="cancelDeleteAll">Abbrechen</button>
+      <button id="confirmDeleteAllBtn" style="background:var(--danger)">Alle löschen</button>
+    </div>
+  `;
+  showDialog(html);
+
+  document.getElementById('cancelDeleteAll').addEventListener('click', hideDialog);
+  document.getElementById('confirmDeleteAllBtn').addEventListener('click', ()=> {
+    deleteAllElements();
+    hideDialog();
+  });
+}
+
+function deleteAllElements() {
+  // Lösche alle Shortcuts und Ordner
+  state.shortcuts = [];
+  state.folders = [];
+
+  // Speichern und synchronisieren
+  saveLocal();
+  if(firebaseEnabled) {
+    pushStateToCloud(state).then(()=> {
+      console.log('Alle Elemente gelöscht und synchronisiert');
+      alert('Alle Elemente wurden erfolgreich gelöscht ✅');
+    });
+  } else {
+    console.log('Alle Elemente lokal gelöscht');
+    alert('Alle Elemente wurden lokal gelöscht ✅');
+  }
+
+  render();
 }
 
 // ===== Firebase init & sync (using compat SDKs loaded in HTML) =====
